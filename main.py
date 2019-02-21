@@ -5,6 +5,7 @@ import lxml
 import re, os, sys
 import pickle
 import string
+import json
 from pprint import pprint
 from bs4 import BeautifulSoup
 from bs4.element import Comment
@@ -40,7 +41,8 @@ def computeTF(tokenDict, text): # frequency of tokens in doc / total num of word
 	tfDict = {}
 	count = len(text)
 	for token, num in tokenDict.items():
-		tfDict[token] = num / float(count)
+		roundedNum = "{0:.8f}".format(num / float(count))
+		tfDict[token] = roundedNum
 	return tfDict
 
 def computeIDF(documentList): # log(numDocuments/numDocuments containing token i)
@@ -54,44 +56,62 @@ def printDict(d):
 		print(str(k) + ": " + str(v))
 
 def saveDictToFile(d, filename):
-	with open(filename, 'w') as myfile:
+	with open(filename, 'wb') as myfile:
 		pickle.dump(d, myfile)
 	myfile.close()
 
 def loadFileToDict(filename):
-	with open(filename, 'r') as myfile:
+	with open(filename, 'rb') as myfile:
 		return pickle.load(myfile)
 
+def writeHumanReadableDictToFile(d):
+	printDebug("Writing Human Readable Dict to file...")
+	with open('humanReadDict.txt', 'w') as file:
+		pprint(d, stream=file)
+
+	    #file.write(json.dumps(d))
+
 def mainWithLoad():
-	invertedIndex = loadFileToDict("myIndex")
+	invertedIndex = loadFileToDict("savedFile")
+	writeHumanReadableDictToFile(invertedIndex)
 	#printDict(invertedIndex)
 
 def main():
-	invertedIndex = defaultdict(list)
-	printDebug("Opening dir: C:/Users/marky/Downloads/webpages/WEBPAGES_RAW/")
-	for dir in range(74):
+	invertedIndex = defaultdict(dict)
+	dirPath = os.path.dirname(os.path.realpath(__file__))
+	webpageDir = dirPath+"/WEBPAGES_RAW/"
+	printDebug("Opening dir: " + webpageDir);
+	for dir in range(1):
 		for file in range(500):
 			tempDict = defaultdict(int)
-			data = openAndReadFile('C:/Users/marky/Downloads/webpages/WEBPAGES_RAW/' + str(dir) + '/' + str(file))
+			printDebug("Opening and Reading: " + str(dir) + '/' + str(file))
+			data = openAndReadFile(webpageDir + str(dir) + '/' + str(file))
 
 			printDebug("Extracting Text from file...")
 			textFromFile = text_from_html(data)
 
 			printDebug("Stripping Bad Chars...")
-			strippedTextFromFile = re.sub(r'[\W_]+', ' ', textFromFile)
+			strippedTextFromFile = re.sub(r'[\W_|^\d]+', ' ', textFromFile)
 
 			printDebug("Tokenizing...")
 			tokens = nltk.word_tokenize(strippedTextFromFile)
 			for t in tokens:
-				tempDict[t] += 1
+				if( type(t) != 'unicode'):
+					tempDict[t] += 1
 			tfDict = computeTF(tempDict, tokens)
 			for t in tokens:
-				invertedIndex[t].append((str(dir) + "/" + str(file), tfDict[t]))
+				invertedIndex[t][str(dir) + "/" + str(file)] =  tfDict[t]
 			#print("Tokens: " + str(tokens))
-	print("Inverted Index: ")
-	saveDictToFile(invertedIndex, "myIndex")
+	printDebug("Inverted Index: ")
+	saveDictToFile(invertedIndex, "savedFile")
 	#printDict(invertedIndex)
 
 if __name__ == '__main__':
-	#main()
+	main()
 	mainWithLoad()
+
+
+# You are not required to use a database. The other option could be storing that
+# dictionary into a file and then load that file again into a dictionary in memory
+# when you start your retrieval component. The easiest path for doing this would 
+# be through serializing/de-serializing the dictionary using the pickle library in python
