@@ -41,7 +41,7 @@ def computeTF(tokenDict, text): # frequency of tokens in doc / total num of word
 	tfDict = {}
 	count = len(text)
 	for token, num in tokenDict.items():
-		roundedNum = "{0:.8f}".format(num / float(count))
+		roundedNum = "{0:.6f}".format(num / float(count))
 		tfDict[token] = roundedNum
 	return tfDict
 
@@ -95,11 +95,18 @@ def main():
 
 			printDebug("Tokenizing...")
 			tokens = nltk.word_tokenize(strippedTextFromFile)
+			tokensFiltered = []
 			for t in tokens:
-				if( type(t) != 'unicode'):
-					tempDict[t] += 1
-			tfDict = computeTF(tempDict, tokens)
-			for t in tokens:
+				try:
+					t.encode('ascii')
+					tokensFiltered.append(t)
+				except:
+					printDebug("Not ascii")
+
+			for t in tokensFiltered:
+				tempDict[t] += 1
+			tfDict = computeTF(tempDict, tokensFiltered)
+			for t in tokensFiltered:
 				invertedIndex[t][str(dir) + "/" + str(file)] =  tfDict[t]
 			#print("Tokens: " + str(tokens))
 	printDebug("Inverted Index: ")
