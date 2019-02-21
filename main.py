@@ -63,33 +63,34 @@ def loadFileToDict(filename):
 		return pickle.load(myfile)
 
 def mainWithLoad():
-	invertedIndex = loadFileToDict("savedFile")
-	printDict(invertedIndex)
+	invertedIndex = loadFileToDict("myIndex")
+	#printDict(invertedIndex)
 
 def main():
 	invertedIndex = defaultdict(list)
-	printDebug("Opening dir: C:/Users/marky/Downloads/webpages/WEBPAGES_RAW/0")
-	for n in range(2):
-		tempDict = defaultdict(int)
-		data = openAndReadFile('C:/Users/marky/Downloads/webpages/WEBPAGES_RAW/0/' + str(n))
-	
-		printDebug("Extracting Text from file...")
-		textFromFile = text_from_html(data)
+	printDebug("Opening dir: C:/Users/marky/Downloads/webpages/WEBPAGES_RAW/")
+	for dir in range(74):
+		for file in range(500):
+			tempDict = defaultdict(int)
+			data = openAndReadFile('C:/Users/marky/Downloads/webpages/WEBPAGES_RAW/' + str(dir) + '/' + str(file))
 
-		printDebug("Stripping Bad Chars...")
-		strippedTextFromFile = re.sub(r'[\W_]+', ' ', textFromFile)
-	
-		printDebug("Tokenizing...")
-		tokens = nltk.word_tokenize(strippedTextFromFile)
-		for t in tokens:
-			tempDict[t] += 1
-		tfDict = computeTF(tempDict, tokens)
-		for t in tokens:
-			invertedIndex[t].append(("0/" + str(n), tfDict[t]))
-		print("Tokens: " + str(tokens))
+			printDebug("Extracting Text from file...")
+			textFromFile = text_from_html(data)
+
+			printDebug("Stripping Bad Chars...")
+			strippedTextFromFile = re.sub(r'[\W_]+', ' ', textFromFile)
+
+			printDebug("Tokenizing...")
+			tokens = nltk.word_tokenize(strippedTextFromFile)
+			for t in tokens:
+				tempDict[t] += 1
+			tfDict = computeTF(tempDict, tokens)
+			for t in tokens:
+				invertedIndex[t].append((str(dir) + "/" + str(file), tfDict[t]))
+			#print("Tokens: " + str(tokens))
 	print("Inverted Index: ")
-	saveDictToFile(invertedIndex, "savedFile")
-	printDict(invertedIndex)
+	saveDictToFile(invertedIndex, "myIndex")
+	#printDict(invertedIndex)
 
 if __name__ == '__main__':
 	#main()
