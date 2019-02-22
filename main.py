@@ -11,8 +11,12 @@ from bs4 import BeautifulSoup
 from bs4.element import Comment
 from collections import defaultdict
 
+import time
+
 DEBUG = False;
+
 #nltk.download('punkt')
+
 def printDebug(str):
 	if(DEBUG == True):
 		print(str)
@@ -76,12 +80,19 @@ def mainWithLoad():
 	writeHumanReadableDictToFile(invertedIndex)
 	#printDict(invertedIndex)
 
+# def getLinksByQueryBasic(wholeDict, queryStr):
+# 	count = 0;
+# 	returnLinks = []
+# 	if (queryStr in wholeDict):
+# 		if(len)
+
+
 def main():
 	invertedIndex = defaultdict(dict)
 	dirPath = os.path.dirname(os.path.realpath(__file__))
 	webpageDir = dirPath+"/WEBPAGES_RAW/"
 	printDebug("Opening dir: " + webpageDir);
-	for dir in range(1):
+	for dir in range(74):
 		for file in range(500):
 			tempDict = defaultdict(int)
 			printDebug("Opening and Reading: " + str(dir) + '/' + str(file))
@@ -111,11 +122,16 @@ def main():
 			#print("Tokens: " + str(tokens))
 	printDebug("Inverted Index: ")
 	saveDictToFile(invertedIndex, "savedFile")
+
+
 	#printDict(invertedIndex)
 
 if __name__ == '__main__':
+	start_time = time.time()
 	main()
 	mainWithLoad()
+	print("--- %s seconds ---" % (time.time() - start_time))
+
 
 
 # You are not required to use a database. The other option could be storing that
