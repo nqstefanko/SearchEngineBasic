@@ -74,14 +74,14 @@ def writeHumanReadableDictToFile(d):
 def mainWithLoad():
 	invertedIndex = loadFileToDict("savedFile")
 	writeHumanReadableDictToFile(invertedIndex)
-	#printDict(invertedIndex)
+	printDict(invertedIndex)
 
 def main():
 	invertedIndex = defaultdict(dict)
 	dirPath = os.path.dirname(os.path.realpath(__file__))
-	webpageDir = dirPath+"/WEBPAGES_RAW/"
+	webpageDir = "C:\\Users/marky/Downloads/Webpages/WEBPAGES_RAW/"
 	printDebug("Opening dir: " + webpageDir);
-	for dir in range(1):
+	for dir in range(74):
 		for file in range(500):
 			tempDict = defaultdict(int)
 			printDebug("Opening and Reading: " + str(dir) + '/' + str(file))
@@ -114,8 +114,35 @@ def main():
 	#printDict(invertedIndex)
 
 if __name__ == '__main__':
-	main()
-	mainWithLoad()
+	#main()
+	#mainWithLoad()
+	with open('C:\\Users/marky/cs121/SearchEngineBasic/savedFile', 'rb') as handle:
+		invertedIndex = pickle.loads(handle.read())
+
+	with open('C:\\Users/marky/Downloads/Webpages/WEBPAGES_RAW/bookkeeping.json') as f:
+		data = json.load(f)
+	responses = ["Informatics", "Mondego", "Irvine"]
+	print("\n\n")
+	for response in responses:
+		sorted_keys = sorted(invertedIndex[response].keys(), reverse=True,
+							 key=lambda y: (invertedIndex[response][y]))
+		sortedKeyCounter = 0
+		print("Number of docs for " + response + ": " + str(len(sorted_keys)))
+		print("Top 20 URLS for " + response)
+		for key in sorted_keys:
+			print(str(sortedKeyCounter + 1) + ".    " + data[key])
+			# print(key + " " + invertedIndex[response][key])
+			sortedKeyCounter += 1
+			if sortedKeyCounter == 20:
+				break
+		print("\n\n")
+
+	print("\n\n"
+		  "Some interesting metrics..."
+		  "\nThe number of documents is:   " + str(37497) +
+		  "\nThe number of tokens is:      " + str(len(invertedIndex)) +
+		  "\nThe size of the file is:      291000KB"
+		  )
 
 
 # You are not required to use a database. The other option could be storing that
