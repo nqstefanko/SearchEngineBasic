@@ -70,7 +70,6 @@ class InvertedIndex:
 	def __init__(self, name):
 		self.name = name
 		self.readableIndex = defaultdict(dict)
-		self.mainIndex = defaultdict(dict)
 		self.allTerms = defaultdict(dict)
 
 	def fillOutQueryInfo(self, query, allDocsLen):
@@ -173,13 +172,11 @@ def loadSavedFileToHumanReadableDict():
 
 
 
-def makeBasicInvertedIndex(query):
+def makeBasicInvertedIndex(query, invIndex):
 	dirRange = 1
 	fileRange = 500
 	wholeCorpusSize = fileRange*dirRange
-	invertedIndex = defaultdict(dict)
 	
-	invIndex = InvertedIndex("Yes")
 	dirPath = os.path.dirname(os.path.realpath(__file__))
 	webpageDir = dirPath+"/WEBPAGES_RAW/"
 	printDebug("Opening dir: " + webpageDir);
@@ -220,6 +217,11 @@ def makeBasicInvertedIndex(query):
 				invIndex.readableIndex[str(dir) + "/" + str(file)][t] =  tempTerm.calcTermFreqWeight()
 				invIndex.allTerms[t] = tempTerm
 	saveDictToFile(invIndex.readableIndex, "savedFile")
+	saveDictToFile(invIndex.allTerms, "allTermsFile")
+	return wholeCorpusSize
+	
+
+def getTheGoods(query, invIndex,wholeCorpusSize):
 	bestDocs = {}
 	allDocWeights = {}
 	finalToRet = {}
@@ -236,25 +238,33 @@ def makeBasicInvertedIndex(query):
 
 	for k,v in allDocWeights.items():
 		finalToRet[k] = finalToRet[k]*allDocWeights[k]/divideBy
- 
+	print("HERE")
 	print(sorted(finalToRet.items(), key=operator.itemgetter(1))[0:20])
 
+
+def loadItemsIntoInvIndex(invIndex):
+	invIndex.readableIndex  =  loadFileToDict("savedFile")
+	invIndex.allTerms = loadFileToDict("allTermsFile")
 
 
 
 def main():
-
-	
 	queryStr = ""
-	if(len(sys.argv) <= 2):
+	if(len(sys.argv) < 2):
 		print("Not enough arguments! Please put query!")
 		sys.exit(0)
-		
+
 	for arg in sys.argv[1:]:
 		queryStr+=arg
 	print(queryStr)
-	makeBasicInvertedIndex(queryStr)
+
+	invIndex = InvertedIndex("Yes")
+	wholeCorpSize = makeBasicInvertedIndex(queryStr, invIndex)
+	#loadItemsIntoInvIndex(invIndex)
+#	print(invIndex.readableIndex)
+	getTheGoods(queryStr, invIndex, 500)
 	loadSavedFileToHumanReadableDict()
+
 
 if __name__ == '__main__':
 	start_time = time.time()
