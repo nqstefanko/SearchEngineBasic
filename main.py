@@ -239,31 +239,50 @@ def getTheGoods(query, invIndex,wholeCorpusSize):
 	for k,v in allDocWeights.items():
 		finalToRet[k] = finalToRet[k]*allDocWeights[k]/divideBy
 	print("HERE")
-	print(sorted(finalToRet.items(), key=operator.itemgetter(1))[0:20])
+	print(sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:20])
+	return finalToRet
 
 
 def loadItemsIntoInvIndex(invIndex):
 	invIndex.readableIndex  =  loadFileToDict("savedFile")
 	invIndex.allTerms = loadFileToDict("allTermsFile")
 
+def queryReport(finalToRet):
+	dirPath = os.path.dirname(os.path.realpath(__file__))
+	with open(dirPath+"/WEBPAGES_RAW/bookkeeping.json") as f:
+		data = json.load(f)
+	counter = 1
+	for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:20]):
+		print(str(counter) + ". " + "key: " + item[0] + " url: " + data[item[0]])
+		counter += 1
 
 
+
+
+#RUN LIKE THIS:
+#python3 main.py [load|*] QUERY WORDS
 def main():
 	queryStr = ""
-	if(len(sys.argv) < 2):
+	if(len(sys.argv) < 3):
 		print("Not enough arguments! Please put query!")
 		sys.exit(0)
 
-	for arg in sys.argv[1:]:
-		queryStr+=arg
+	for arg in sys.argv[2:]:
+		queryStr+=(" " + arg)
 	print(queryStr)
 
+	wholeCorpSize = 500;
 	invIndex = InvertedIndex("Yes")
-	wholeCorpSize = makeBasicInvertedIndex(queryStr, invIndex)
-	#loadItemsIntoInvIndex(invIndex)
+
+	if(sys.argv[1] != 'load'):
+		wholeCorpSize = makeBasicInvertedIndex(queryStr, invIndex)
+	else:
+		loadItemsIntoInvIndex(invIndex)
+
 #	print(invIndex.readableIndex)
-	getTheGoods(queryStr, invIndex, 500)
+	finalToRet = getTheGoods(queryStr, invIndex, 500) #DOES THE COSINE SHIT
 	loadSavedFileToHumanReadableDict()
+	queryReport(finalToRet)
 
 
 if __name__ == '__main__':
