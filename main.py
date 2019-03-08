@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import print_function
 import nltk
 import math
@@ -13,6 +14,10 @@ from collections import defaultdict
 import math
 import time
 import operator
+from tkinter import *
+from urllib.request import urlopen
+import requests
+import webbrowser
 
 DEBUG = True;
 
@@ -94,8 +99,8 @@ class InvertedIndex:
 	def calculateScore(self, query, document):
 		totalScore = 0
 		for word in query:
-			if(word in readableIndex[document]):
-				totalScore+=readableIndex[document]
+			if(word in self.readableIndex[document]):
+				totalScore+=self.readableIndex[document]
 		return totalScore
 
 def naturalize(weights):
@@ -110,8 +115,9 @@ def printDebug(str):
 
 def openAndReadFile(filename):
 	data = ''
-	with open(filename, 'r') as myfile:
-		data=myfile.read()#.replace('\n', '')
+	print (filename)
+	with open(filename, 'r', encoding='utf8') as myfile:
+		data=myfile.read()
 	myfile.close()
 	return data
 
@@ -167,25 +173,22 @@ def writeHumanReadableDictToFile(d):
 def loadSavedFileToHumanReadableDict():
 	invertedIndex = loadFileToDict("savedFile")
 	writeHumanReadableDictToFile(invertedIndex)
-	#printDict(invertedIndex)
-
-
-
+	printDict(invertedIndex)
 
 def makeBasicInvertedIndex(query, invIndex):
-	dirRange = 1
+	dirRange = 74
 	fileRange = 500
 	wholeCorpusSize = fileRange*dirRange
 	
-	dirPath = os.path.dirname(os.path.realpath(__file__))
-	webpageDir = dirPath+"/WEBPAGES_RAW/"
-	printDebug("Opening dir: " + webpageDir);
+	dirPath = os.path.dirname(os.path.realpath(__file__)) + "WEBPAGES_RAW/"
+	webpageDir = "C:\\Users/marky/Downloads/Webpages/WEBPAGES_RAW/"
+	printDebug("Opening dir: " + dirPath);
 	for dir in range(dirRange):
 		for file in range(fileRange):
 			wholeCorpusSize+=1
 			tempDict = defaultdict(int)
 			printDebug("Opening and Reading: " + str(dir) + '/' + str(file))
-			data = openAndReadFile(webpageDir + str(dir) + '/' + str(file))
+			data = openAndReadFile(dirPath + str(dir) + '/' + str(file))
 
 			printDebug("Extracting Text from file...")
 			textFromFile = text_from_html(data)
@@ -247,18 +250,41 @@ def loadItemsIntoInvIndex(invIndex):
 	invIndex.readableIndex  =  loadFileToDict("savedFile")
 	invIndex.allTerms = loadFileToDict("allTermsFile")
 
+def link_exists(url):
+	#link = http.client.HTTPConnection(url)
+	try:
+		#print(requests.head("http://" + url, allow_redirects  =True).status_code)
+		return requests.head("http://" + url,allow_redirects  =True).status_code != 404
+	except:
+		return True
+
 def queryReport(finalToRet):
 	dirPath = os.path.dirname(os.path.realpath(__file__))
+	ret = []
 	with open(dirPath+"/WEBPAGES_RAW/bookkeeping.json") as f:
 		data = json.load(f)
-	counter = 1
-	for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:20]):
-		print(str(counter) + ". " + "key: " + item[0] + " url: " + data[item[0]])
-		counter += 1
+	counter = 0
+	for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:40]):
+		if link_exists(data[item[0]]):
+			ret.append(data[item[0]])
+			counter += 1
+			if counter == 20:
+				return ret
+	#return [data[item[0]] for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:40]) if link_exists(data[item[0]])]
+	#counter = 1
+	#for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:20]):
+	#	print(str(counter) + ". " + "key: " + item[0] + " url: " + data[item[0]])
+	#	counter += 1
 
+open_web_browser = lambda url: (lambda x: webbrowser.open_new(url))
 
-
-
+def startSearch(entry, invIndex, frame):
+	finalToRet = getTheGoods(entry.get(), invIndex, 500)
+	top20 = queryReport(finalToRet)
+	for i in range(len(top20)):
+		link = Label(frame, text=top20[i], fg="blue", cursor = "hand2", width=75, anchor = W )
+		link.grid(row=i+2,column = 0, sticky=W)
+		link.bind("<Button>", open_web_browser(top20[i]))
 #RUN LIKE THIS:
 #python3 main.py [load|*] QUERY WORDS
 def main():
@@ -280,9 +306,24 @@ def main():
 		loadItemsIntoInvIndex(invIndex)
 
 #	print(invIndex.readableIndex)
-	finalToRet = getTheGoods(queryStr, invIndex, 500) #DOES THE COSINE SHIT
-	loadSavedFileToHumanReadableDict()
-	queryReport(finalToRet)
+	#finalToRet = getTheGoods(queryStr, invIndex, 500) #DOES THE COSINE SHIT
+	#loadSavedFileToHumanReadableDict()
+
+	#GUI
+	root = Tk()
+	root.title("Search Engine")
+	frame = Frame(root)
+
+	labelText = StringVar()
+	label = Label(frame, text="CS121 Search Engine")
+	button = Button(frame, text="Search", command=lambda: startSearch(entry, invIndex, frame))
+	entry = Entry(frame, width=50)
+	entry.grid(row=1, pady=10, sticky=W, padx = 5)
+	button.grid(row=1, column=1, pady=10, sticky=W, padx = 5)
+	label.grid(row = 0)
+	frame.pack()
+	root.mainloop()
+	#queryReport(finalToRet)
 
 
 if __name__ == '__main__':
