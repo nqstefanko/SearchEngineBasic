@@ -18,8 +18,12 @@ from tkinter import *
 from urllib.request import urlopen
 import requests
 import webbrowser
+from spellchecker import SpellChecker
+
 
 DEBUG = True;
+DIR_RANGE = 1
+FILE_RANGE = 500
 
 #nltk.download('punkt')
 
@@ -136,8 +140,6 @@ def text_from_html(body):
 
 def computeTF(tokenDict, text): # frequency of tokens in doc / total num of words
 	tfDict = {}
-	#tfDict = defaultdict(dict)
-
 	count = len(text)
 	for token, num in tokenDict.items():
 		roundedNum = "{0:.6f}".format(num / float(count))
@@ -175,16 +177,13 @@ def loadSavedFileToHumanReadableDict():
 	writeHumanReadableDictToFile(invertedIndex)
 	printDict(invertedIndex)
 
-def makeBasicInvertedIndex(query, invIndex):
-	dirRange = 74
-	fileRange = 500
-	wholeCorpusSize = fileRange*dirRange
+def makeBasicInvertedIndex(invIndex):
+	wholeCorpusSize = FILE_RANGE*DIR_RANGE
 	
-	dirPath = os.path.dirname(os.path.realpath(__file__)) + "WEBPAGES_RAW/"
-	webpageDir = "C:\\Users/marky/Downloads/Webpages/WEBPAGES_RAW/"
+	dirPath = os.path.dirname(os.path.realpath(__file__)) + "/WEBPAGES_RAW/"
 	printDebug("Opening dir: " + dirPath);
-	for dir in range(dirRange):
-		for file in range(fileRange):
+	for dir in range(DIR_RANGE):
+		for file in range(FILE_RANGE):
 			wholeCorpusSize+=1
 			tempDict = defaultdict(int)
 			printDebug("Opening and Reading: " + str(dir) + '/' + str(file))
@@ -210,8 +209,7 @@ def makeBasicInvertedIndex(query, invIndex):
 				tempDict[t] += 1
 
 			tfDict = computeTF(tempDict, tokensFiltered)
-			#printDebug(tfDict)
-			#printDebug(sorted(tokensFiltered))
+
 			for t in tokensFiltered:
 				tempTerm = Term(t)
 				tempTerm.setAttributes(tempDict[t])	
@@ -224,7 +222,7 @@ def makeBasicInvertedIndex(query, invIndex):
 	return wholeCorpusSize
 	
 
-def getTheGoods(query, invIndex,wholeCorpusSize):
+def getTheGoods(query, invIndex, wholeCorpusSize):
 	bestDocs = {}
 	allDocWeights = {}
 	finalToRet = {}
@@ -234,7 +232,7 @@ def getTheGoods(query, invIndex,wholeCorpusSize):
 		for q in temp:
 			if(q in invIndex.readableIndex[docName]):#for each query in doc
 				finalToRet[docName] = temp[q] #get the weights for queries
-				allDocWeights[docName] = invIndex.readableIndex[docName][q]#getTheWieght for doc
+				allDocWeights[docName] = invIndex.readableIndex[docName][q] #getTheWieght for doc
 
 	weights = allDocWeights.values();
 	divideBy = naturalize(weights)
@@ -270,38 +268,69 @@ def queryReport(finalToRet):
 			counter += 1
 			if counter == 20:
 				return ret
+	return ret
 	#return [data[item[0]] for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:40]) if link_exists(data[item[0]])]
 	#counter = 1
 	#for item in (sorted(finalToRet.items(), reverse = True, key=operator.itemgetter(1))[0:20]):
 	#	print(str(counter) + ". " + "key: " + item[0] + " url: " + data[item[0]])
 	#	counter += 1
 
-open_web_browser = lambda url: (lambda x: webbrowser.open_new(url))
+open_web_browser = lambda url: (lambda x: webbrowser.open(url))
 
-def startSearch(entry, invIndex, frame):
-	finalToRet = getTheGoods(entry.get(), invIndex, 500)
+
+def checkSpelling(query):
+	spell = SpellChecker()
+	finalQuery = ""
+	words = query.split()
+	misspelled = spell.unknown(words)
+	fixed = False
+	for word in words:
+		newWord = ""
+		newWord = spell.correction(word)
+		print(len(newWord))
+		if( (newWord != word) and (word[0].islower() == True)):#if it is not there and not capitalized
+			fixed = True
+			finalQuery+=" "+ newWord
+		else:
+			fixed = False
+			finalQuery+= " "+ word
+	return (finalQuery.strip(), fixed)
+
+
+
+
+def startSearch(root, entry, invIndex, frame, text):
+	print(entry.get())
+	fixed = False;
+	newQuery = ""
+	newQuery, fixed = checkSpelling(entry.get())
+	print(newQuery)
+
+	print(fixed)
+	if(fixed):
+		text.insert(END, "Did you mean:" + newQuery + "?")
+
+	finalToRet = getTheGoods(newQuery, invIndex, DIR_RANGE * FILE_RANGE)
 	top20 = queryReport(finalToRet)
+	if(fixed == False):
+		text.delete('1.0', END)
+
 	for i in range(len(top20)):
-		link = Label(frame, text=top20[i], fg="blue", cursor = "hand2", width=75, anchor = W )
+		link = Label(frame, text=str(i+1) + ". " + top20[i], fg="blue", cursor = "hand2", width=75, anchor = W )
 		link.grid(row=i+2,column = 0, sticky=W)
-		link.bind("<Button>", open_web_browser(top20[i]))
+		link.bind("<Button>", open_web_browser("http://" + top20[i]))
+	text.pack()
+
+
 #RUN LIKE THIS:
 #python3 main.py [load|*] QUERY WORDS
 def main():
-	queryStr = ""
-	if(len(sys.argv) < 3):
-		print("Not enough arguments! Please put query!")
-		sys.exit(0)
 
-	for arg in sys.argv[2:]:
-		queryStr+=(" " + arg)
-	print(queryStr)
-
-	wholeCorpSize = 500;
+	#wholeCorpSize = 500;
 	invIndex = InvertedIndex("Yes")
 
-	if(sys.argv[1] != 'load'):
-		wholeCorpSize = makeBasicInvertedIndex(queryStr, invIndex)
+	if(len(sys.argv) != 2):
+		wholeCorpSize = makeBasicInvertedIndex(invIndex)
 	else:
 		loadItemsIntoInvIndex(invIndex)
 
@@ -313,17 +342,20 @@ def main():
 	root = Tk()
 	root.title("Search Engine")
 	frame = Frame(root)
+	#root.geometry("500x300")
 
 	labelText = StringVar()
+	T = Text(root, height=2, width=30)
+
 	label = Label(frame, text="CS121 Search Engine")
-	button = Button(frame, text="Search", command=lambda: startSearch(entry, invIndex, frame))
+	button = Button(frame, text="Search", command=lambda: startSearch(root, entry, invIndex, frame, T))
 	entry = Entry(frame, width=50)
 	entry.grid(row=1, pady=10, sticky=W, padx = 5)
 	button.grid(row=1, column=1, pady=10, sticky=W, padx = 5)
 	label.grid(row = 0)
 	frame.pack()
 	root.mainloop()
-	#queryReport(finalToRet)
+	# queryReport(finalToRet)
 
 
 if __name__ == '__main__':
